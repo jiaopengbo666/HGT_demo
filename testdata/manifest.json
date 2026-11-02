@@ -1,0 +1,25 @@
+{
+  "kind": "synthetic",
+  "version": "1.5.0",
+  "files": {
+    "arg_hits.12col.tsv": "46cdf89a81a15561a7769d744b7435c2627be141e386d7e3eaccf58e6d8a51ec",
+    "arg_hits.prefiltered.tsv": "61495f55261aecc30ba6a9c77b46891f3a6f9b9980a1f995a224553681aa5d48",
+    "arg_hits.tsv": "61495f55261aecc30ba6a9c77b46891f3a6f9b9980a1f995a224553681aa5d48",
+    "arg_map.tsv": "bb344116d9c82b60c9c797abf7b8b1d53d6cfc3b158e8358328964cfd9511862",
+    "blastn.tsv": "aec43ce58f76d6f9eb14ecac81d8098c69e0f9d9836c2e8e9b60acdb4a5a041c",
+    "check_output.py": "a6144c177e0dec9b14d2798fa281c9d2d7d62fb60fe8c463aa4147350a8d5c32",
+    "expected/hgt_arg_orfs.fna": "48b632ee4d4ee23595c8942fba6073af21d66a0f2d0e900c85d3b44e399a7e0c",
+    "expected/hgt_fragments.fna": "3a69952181208121ef0a3b776e7d777b735a406de80d74bcab20910b8a4e095d",
+    "expected/HGT_summary.tsv": "2f84767ad67531bd1e3e8466c647d8d55bbf71e1c0dd756128f97431643a414a",
+    "expected/README.md": "be0b6ed25f980339514ca73854a7a0170103755fffb6f8536cc5e0c345a24f02",
+    "fastani.tsv": "2fb323add2766fc55866cfeba3c5950f72b56a54f15753d24a8f76c3222ff034",
+    "genes.faa": "9ba795735e993ee2847d6bff5240ae056a8e28ddef4f9bf074783ad68f31f0ed",
+    "genes.gff": "ef29dad42f3a6c67d32d4684675733ae74151d9d65ce3e5178751b8128fbce49",
+    "mags/MAG_A.fa": "e8c0ff58ae187051cce8dce41ac9466f82b222457c1389e3a4040efe31c56f50",
+    "mags/MAG_B.fa": "668353f26ca6c93dfed228c9f27ee1a35f9700c77fea057bda3e78d3896198ab",
+    "orfs.tsv": "fc8d3a983e0652feea005af4835adb69a16477087d2ce86af881457eb6bb0175",
+    "README.md": "aea3052a01e52a13c02ed9afd58beaacd0065ced92a7945c073ce24655c314df",
+    "run_example.sh": "043d4710bc91e7d36445ec136bc3e715832b52b0cc7bfb2d798327f2fff2050b",
+    "taxonomy.tsv": "72b60b7702a6297e4b325c78dd38c01796503ff383638cd563d9497e78fc44b4"
+  }
+}

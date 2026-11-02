@@ -1,0 +1,14 @@
+{
+  "source_file": "Supplementary_Data_第二轮.xlsx",
+  "source_sheet": "Supplementary Data 2",
+  "header_row": 2,
+  "source_sha256": "516ddab5076c88f08b8d21d8c74aab9acd8bce302163cebb3ff33efe5631e608",
+  "extracted_on": "2026-11-02",
+  "source_rows": 13673,
+  "unique_subject_ids": 13673,
+  "duplicate_identical_rows": 0,
+  "selection": "All sequence-ID/type/subtype rows; no refined-library or risk filtering applied.",
+  "gene_rule": "Subtype suffix following the first double underscore; otherwise the subtype itself.",
+  "matching_rule": "Exact subject_id; no ID normalization or fuzzy matching.",
+  "output_sha256": "9d82e075a3b833a7b661bf6db420a0f77cb12aa085dd6e33924d3f27dcf8c5df"
+}

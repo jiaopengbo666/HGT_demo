@@ -1,0 +1,6 @@
+##gff-version 3
+# Synthetic format example, not real gene predictions.
+contig_A	Prodigal	CDS	120	419	.	+	0	ID=1_1;partial=00;
+contig_A	Prodigal	CDS	450	599	.	+	0	ID=1_2;partial=00;
+contig_A	Prodigal	CDS	650	949	.	+	0	ID=1_3;partial=00;
+contig_B	Prodigal	CDS	220	519	.	-	0	ID=2_1;partial=00;

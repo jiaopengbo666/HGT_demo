@@ -1,0 +1,5 @@
+orf_id	contig_id	start	end	strand
+orf_A	contig_A	120	419	+
+orf_partial	contig_A	650	949	+
+orf_B	contig_B	220	519	-
+orf_nonARG	contig_A	450	599	+
