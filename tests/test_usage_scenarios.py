@@ -66,6 +66,7 @@ class UsageScenarioTests(unittest.TestCase):
         self.assertNotIn('--orf-gff', flags['reuse_tsv'])
         self.assertIn('--arg-hits-filtered', flags['filtered_hits'])
         self.assertFalse({'--arg-db', '--arg-hits', '--arg-map'} & flags['hgt_only'])
+        self.assertIn('--hgt-only', flags['hgt_only'])
 
     def test_import_modes_export_and_roundtrip(self):
         self.launch('reuse_all')

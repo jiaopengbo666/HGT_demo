@@ -1,6 +1,6 @@
 # Reuse existing results
 
-Edit server_config.sh or pass `--config FILE`. Defaults use testdata/ and Python from the active environment.
+Edit server_config.sh or pass `--config FILE`. Defaults use testdata/, bundled SARG and Python from the active environment.
 
 ```bash
 bash usage_scenarios/run_case.sh reuse_all
@@ -8,7 +8,7 @@ bash usage_scenarios/run_case.sh reuse_all
 
 | Case | Additional inputs |
 |---|---|
-| auto | ARG database |
+| auto | Bundled SARG, or a custom ARG database |
 | orfs | ARG database, ORF GFF and proteins |
 | arg_hits | ORF GFF, proteins and raw ARG hits |
 | ani | ARG database and FastANI results |
@@ -16,7 +16,7 @@ bash usage_scenarios/run_case.sh reuse_all
 | reuse_all | BLASTn, FastANI, ORF GFF/proteins and ARG hits |
 | reuse_tsv | Same as reuse_all, using ORF TSV |
 | filtered_hits | Same as reuse_all, using prefiltered ARG hits |
-| hgt_only | MAGs and taxonomy |
+| hgt_only | MAGs and taxonomy (--hgt-only) |
 
 testdata supports reuse_all, reuse_tsv and filtered_hits. Set real input paths for the other cases. Output: scenario_results/CASE/. Use `--dry-run` to print the command.
 

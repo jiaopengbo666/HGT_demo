@@ -40,7 +40,7 @@ case "$scenario" in
     options+=(--arg-db "$SARG_FASTA" --annotator "${ANNOTATOR:-blastp}") ;;
   arg_hits|reuse_all|reuse_tsv) options+=(--arg-hits "$ARG_HITS") ;;
   filtered_hits) options+=(--arg-hits "$FILTERED_ARG_HITS" --arg-hits-filtered) ;;
-  hgt_only) ;;
+  hgt_only) options+=(--hgt-only) ;;
   *) echo "Unknown CASE: $scenario" >&2; usage; exit 2 ;;
 esac
 case "$scenario" in

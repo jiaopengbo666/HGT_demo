@@ -2,12 +2,15 @@
 """Find candidate HGT fragments and annotate overlapping ARG ORFs."""
 import argparse
 import csv
+import hashlib
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from collections import defaultdict
@@ -16,6 +19,7 @@ from urllib.parse import unquote
 
 VERSION = "1.5.0"
 DEFAULT_ARG_MAP = Path(__file__).resolve().parent / "data" / "SARG_names.tsv"
+DEFAULT_ARG_DB = Path(__file__).resolve().parent / "database" / "SARG3.2.1-S.fasta"
 
 
 def fasta(path):
@@ -335,20 +339,75 @@ def predict_orfs(sequences, work):
     return normalized, proteins
 
 
+def arg_database_files(prefix, annotator):
+    files = sorted(p for p in prefix.parent.glob(prefix.name + "*") if p.is_file())
+    suffixes = (".dmnd",) if annotator == "diamond" else (".phr", ".pin", ".psq")
+    if all(any(p.name.endswith(suffix) for p in files) for suffix in suffixes):
+        return files
+    return []
+
+
+def cached_arg_database(args, work):
+    """Build or reuse an index keyed by FASTA content and aligner."""
+    digest = hashlib.sha256()
+    with args.arg_db.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    checksum = digest.hexdigest()
+    entry = args.arg_db_cache.expanduser().resolve() / args.annotator / checksum
+    manifest = entry / "manifest.json"
+    record, reused = {}, False
+    if manifest.is_file() and not args.rebuild_arg_db:
+        try:
+            record = json.loads(manifest.read_text(encoding="utf-8"))
+            prefix = entry / record["prefix"]
+            reused = (record["source_sha256"] == checksum and record["annotator"] == args.annotator
+                      and bool(arg_database_files(prefix, args.annotator)) and bool(record["files"])
+                      and all((entry / name).is_file() and (entry / name).stat().st_size == size
+                              for name, size in record["files"].items()))
+        except (OSError, ValueError, KeyError, TypeError):
+            reused = False
+    if reused:
+        progress("[04] Using cached ARG database", work.parent / "pipeline.log")
+    else:
+        progress("[04] Building ARG database", work.parent / "pipeline.log")
+        entry.mkdir(parents=True, exist_ok=True)
+        build = Path(tempfile.mkdtemp(prefix="index_", dir=entry))
+        pending = entry / (build.name + ".json.tmp")
+        prefix = build / "arg_db"
+        try:
+            if args.annotator == "diamond":
+                run_command(["diamond", "makedb", "--in", str(args.arg_db), "--db", str(prefix)], work)
+            else:
+                run_command(["makeblastdb", "-in", str(args.arg_db), "-dbtype", "prot", "-out", str(prefix)], work)
+            files = arg_database_files(prefix, args.annotator)
+            if not files or any(p.stat().st_size == 0 for p in files):
+                raise ValueError("ARG database builder did not produce a complete index.")
+            record = dict(annotator=args.annotator, source_sha256=checksum,
+                          prefix=prefix.relative_to(entry).as_posix(),
+                          files={p.relative_to(entry).as_posix(): p.stat().st_size for p in files})
+            pending.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+            os.replace(pending, manifest)
+        except BaseException:
+            pending.unlink(missing_ok=True)
+            shutil.rmtree(build)
+            raise
+    info = dict(database_fasta=str(args.arg_db), annotator=args.annotator,
+                source_sha256=checksum, index_prefix=str(prefix), reused=reused)
+    (work / "database.json").write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
+    return prefix
+
+
 def annotate(proteins, args, work):
-    database_dir = work / "database"
-    database_dir.mkdir(exist_ok=True)
-    db = database_dir / "arg_db"
+    db = cached_arg_database(args, work)
     hits = work / "arg_hits.tsv"
     fields = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen"
     if args.annotator == "diamond":
-        run_command(["diamond", "makedb", "--in", str(args.arg_db), "--db", str(db)], work)
         run_command(["diamond", "blastp", "--query", str(proteins), "--db", str(db),
                      "--out", str(hits), "--threads", str(args.threads),
                      "--evalue", str(args.arg_evalue), "--max-target-seqs", "5",
                      "--outfmt", "6"] + fields.split(), work)
     else:
-        run_command(["makeblastdb", "-in", str(args.arg_db), "-dbtype", "prot", "-out", str(db)], work)
         run_command(["blastp", "-query", str(proteins), "-db", str(db), "-out", str(hits),
                      "-num_threads", str(args.threads), "-evalue", str(args.arg_evalue),
                      "-max_target_seqs", "5", "-outfmt", "6 " + fields], work)
@@ -622,7 +681,7 @@ def analyze(args):
             progress("[03] Starting Prodigal ORF prediction", pipeline_log)
             orfs, proteins = predict_orfs(sequences, orf_dir)
         progress(f"[03] ORF stage complete: {len(orfs)} ORFs", pipeline_log)
-        progress(f"[04] Starting ARG database construction and {args.annotator} annotation", pipeline_log)
+        progress(f"[04] Starting {args.annotator} ARG annotation", pipeline_log)
         hits = load_arg_hits(annotate(proteins, args, arg_dir), orfs, proteins, args, arg_dir)
     elif args.arg_hits:
         progress("[03] Loading ORFs paired with provided ARG hits", pipeline_log)
@@ -686,6 +745,7 @@ def analyze(args):
                   unique_arg_orfs=len(arg_sequences), annotation_enabled=bool(args.arg_db or args.arg_hits),
                   total_input_orfs=len(orfs), total_arg_positive_orfs=len(hits),
                   arg_map_source=args.arg_map_source,
+                  arg_database_source=args.arg_db_source,
                   arg_positive_fragment_pairs=len(arg_fragment_ids),
                   complete_arg_positive_fragment_pairs=len(complete_arg_fragment_ids), main_summary_rows=len(master),
                   ani_source="provided" if args.ani_results else "computed_with_fastani",
@@ -729,7 +789,7 @@ def parser():
         description="HGT_demo v1.5: identify candidate shared DNA fragments between MAGs and locate ARG ORFs.",
         formatter_class=HelpFormatter,
         epilog="""Examples:
-  python hgt_demo.py -i MAGs/ -o results/ --taxonomy taxonomy.tsv --arg-db SARG.faa
+  python hgt_demo.py -i MAGs/ -o results/ --taxonomy taxonomy.tsv
   python hgt_demo.py -i MAGs/ -o results/ --taxonomy taxonomy.tsv \
     --blast-results blastn.tsv --ani-results fastani.tsv \
     --arg-hits arg_hits.tsv --orf-gff genes.gff --orf-proteins genes.faa
@@ -741,6 +801,8 @@ Inputs:
   Imported ARG hits require matching ORF coordinates and query lengths
   from qlen or --orf-proteins. --arg-hits-filtered skips ARG thresholds.
   --arg-map accepts subject_id/gene/subtype/type TSV; default: data/SARG_names.tsv.
+  Automatic ARG annotation uses database/SARG3.2.1-S.fasta by default.
+  --arg-db selects another protein FASTA; --hgt-only skips ARG annotation.
   MAG paths must be free of whitespace. Coordinates are 1-based inclusive.
 
 Selection defaults:
@@ -768,7 +830,12 @@ Output:
     p.add_argument("--max-ani", type=float, default=95, help="Strict upper bound: ANI < this value")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--arg-hits", type=Path, help="Existing ARG protein hits in outfmt 6; requires matching ORF coordinates")
-    mode.add_argument("--arg-db", type=Path, help="ARG protein FASTA for automatic annotation")
+    mode.add_argument("--arg-db", type=Path, help="ARG protein FASTA (default: bundled SARG3.2.1-S)")
+    mode.add_argument("--hgt-only", action="store_true", help="Run DNA fragment analysis without ARG annotation")
+    p.add_argument("--arg-db-cache", type=Path,
+                   default=Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "hgt_demo" / "arg_databases",
+                   help="Shared directory for reusable ARG database indexes")
+    p.add_argument("--rebuild-arg-db", action="store_true", help="Rebuild the current ARG database index")
     p.add_argument("--orf-gff", "--orf-tsv", dest="orf_coordinates", type=Path,
                    help="ORF GFF CDS coordinates or documented TSV; match ARG query IDs exactly")
     p.add_argument("--orf-proteins", type=Path, help="Matching ORF protein FASTA; required when reusing ORFs for automatic annotation")
@@ -788,6 +855,10 @@ Output:
 def main(argv=None):
     p = parser()
     args = p.parse_args(argv)
+    args.arg_db_source = "user" if args.arg_db else "not_used"
+    if not (args.arg_db or args.arg_hits or args.hgt_only):
+        args.arg_db = DEFAULT_ARG_DB
+        args.arg_db_source = "bundled_SARG"
     if args.threads < 1 or args.min_fragment_length < 1:
         p.error("Threads and minimum fragment length must be positive.")
     for value in (args.fragment_identity, args.max_ani, args.arg_identity, args.arg_query_cover):

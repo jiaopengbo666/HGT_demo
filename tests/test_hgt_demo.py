@@ -59,9 +59,10 @@ class WorkflowTests(unittest.TestCase):
         self.map.write_text("subject_id\tgene\tsubtype\ttype\nref1\tgeneX\tsubtypeX\ttypeX\n")
 
     def args(self, name="out", extra=()):
+        annotation = [] if any(flag in extra for flag in ("--arg-db", "--arg-hits")) else ["--hgt-only"]
         return ["-i", str(self.mags), "-o", str(self.base / name),
                 "--taxonomy", str(self.taxonomy), "--blast-results", str(self.blast),
-                "--ani-results", str(self.ani)] + list(extra)
+                "--ani-results", str(self.ani), "--arg-db-cache", str(self.base / "cache")] + annotation + list(extra)
 
     def run_ok(self, name="out", extra=()):
         self.assertEqual(hgt.main(self.args(name, extra)), 0)
@@ -282,7 +283,7 @@ class WorkflowTests(unittest.TestCase):
                 Path(command[command.index("-o") + 1]).write_text("A\tB\t94\n")
         with patch.object(hgt, "run_command", side_effect=fake):
             self.assertEqual(hgt.main(["-i", str(self.mags), "-o", str(self.base / "out"),
-                                       "--taxonomy", str(self.taxonomy)]), 0)
+                                       "--taxonomy", str(self.taxonomy), "--hgt-only"]), 0)
         self.assertEqual(len(rows(self.base / "out" / "01_blastn/selected_fragment_pairs.tsv")), 1)
         self.assertEqual(sum(c[0] == "blastn" for c in calls), 2)
 
@@ -389,6 +390,13 @@ class WorkflowTests(unittest.TestCase):
                 if command[0] == "prodigal":
                     (work / "genes.gff").write_text("ctgA\tProdigal\tCDS\t120\t419\t.\t+\t0\tID=1_1;partial=00\n")
                     (work / "genes.faa").write_text(">ctgA_1 # 120 # 419 # 1 # ID=1_1;partial=00;\n" + "M" * 100 + "\n")
+                elif command[0] == "makeblastdb":
+                    prefix = Path(command[command.index("-out") + 1])
+                    for suffix in (".phr", ".pin", ".psq"):
+                        Path(str(prefix) + suffix).write_text("mock index")
+                elif command[:2] == ["diamond", "makedb"]:
+                    prefix = Path(command[command.index("--db") + 1])
+                    Path(str(prefix) + ".dmnd").write_text("mock index")
                 elif command[:2] == ["diamond", "blastp"] or command[0] == "blastp":
                     (work / "arg_hits.tsv").write_text("ctgA_1\tref1\t90\t100\t0\t0\t1\t100\t1\t100\t1e-30\t200\t100\n")
             with patch.object(hgt, "run_command", side_effect=fake):
@@ -398,10 +406,14 @@ class WorkflowTests(unittest.TestCase):
                 out = self.run_ok(annotator or "default_blastp", options)
             self.assertEqual(rows(out / "04_arg_annotation/fragment_arg_details.tsv")[0]["orf_id"], "ctgA_1")
             arg_dir = out / "04_arg_annotation"
-            self.assertTrue((arg_dir / "database").is_dir())
-            expected_prefix = str(arg_dir / "database/arg_db")
+            info = json.loads((arg_dir / "database.json").read_text())
+            expected_prefix = info["index_prefix"]
+            self.assertTrue(Path(expected_prefix).is_relative_to(self.base / "cache"))
             index_calls = [c for c in calls if c[0] == "makeblastdb" or c[:2] == ["diamond", "makedb"]]
-            self.assertTrue(any(expected_prefix in c for c in index_calls))
+            if info["reused"]:
+                self.assertEqual(index_calls, [])
+            else:
+                self.assertTrue(any(expected_prefix in c for c in index_calls))
             if annotator == "diamond":
                 self.assertTrue(any(c[:2] == ["diamond", "blastp"] for c in calls))
             else:
@@ -411,7 +423,7 @@ class WorkflowTests(unittest.TestCase):
     def test_external_failure_stops_run(self):
         with patch.object(hgt, "run_command", side_effect=subprocess.CalledProcessError(1, ["makeblastdb"])):
             args = ["-i", str(self.mags), "-o", str(self.base / "out"),
-                    "--taxonomy", str(self.taxonomy)]
+                    "--taxonomy", str(self.taxonomy), "--hgt-only"]
             self.assertEqual(hgt.main(args), 1)
         self.assertFalse((self.base / "out" / "run_summary.json").exists())
 
@@ -438,7 +450,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(command[0], "fastANI")
             Path(command[command.index("-o") + 1]).write_text("A\tB\t94\n")
         args = ["-i", str(self.mags), "-o", str(self.base / "out"),
-                "--taxonomy", str(self.taxonomy), "--blast-results", str(self.blast)]
+                "--taxonomy", str(self.taxonomy), "--blast-results", str(self.blast), "--hgt-only"]
         with patch.object(hgt, "run_command", side_effect=fake):
             self.assertEqual(hgt.main(args), 0)
         report = json.loads((self.base / "out" / "run_summary.json").read_text())

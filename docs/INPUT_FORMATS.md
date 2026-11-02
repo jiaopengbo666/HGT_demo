@@ -12,7 +12,7 @@ Tables are tab-separated. ORF coordinates are 1-based inclusive, with strand `+`
 | BLASTn / ARG hits | Standard 12-column outfmt6, headerless |
 | FastANI | Query, reference, ANI, matched fragments, total fragments; headerless |
 | ARG map | Header: subject_id, gene, subtype, type |
-| ARG database | Protein FASTA |
+| ARG database | Protein FASTA; bundled SARG3.2.1-S by default, --arg-db overrides |
 
 Standard outfmt6 column order:
 

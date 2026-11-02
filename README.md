@@ -19,15 +19,22 @@ Dependencies: Python >=3.10, BLAST+, FastANI, Prodigal and DIAMOND.
 bash hgt_pipeline.sh \
   -i MAGs/ -o results/ \
   --taxonomy taxonomy.tsv \
-  --arg-db /path/to/SARG.fasta \
   -t 8
 ```
 
 Provide one nucleotide FASTA per MAG and a GTDB-Tk taxonomy table covering all input MAGs. MAG and contig IDs must be unique; MAG paths must be free of whitespace. Use a new output directory for each run.
 
-BLASTp is the default ARG aligner; select DIAMOND with `--annotator diamond`. ARG names and classes come from `data/SARG_names.tsv`; use `--arg-map` for another database. Supply the ARG protein FASTA separately.
+The bundled `database/SARG3.2.1-S.fasta` is the default ARG database (12,746 proteins). BLASTp is the default aligner; select DIAMOND with `--annotator diamond`. ARG labels come from `data/SARG_names.tsv`.
+
+Use `--arg-db /path/to/other.fasta` for another database and `--arg-map` for its labels. Use `--hgt-only` for DNA fragment analysis without ARG annotation.
 
 Existing results can be supplied with `--blast-results`, `--ani-results`, `--orf-gff`/`--orf-tsv`, `--orf-proteins` and `--arg-hits`. See [input formats](docs/INPUT_FORMATS.md). Run `bash hgt_pipeline.sh -h` for all options.
+
+## Database cache
+
+The first ARG annotation run builds an index; later runs reuse it from `~/.cache/hgt_demo/arg_databases/` (or `$XDG_CACHE_HOME/hgt_demo/arg_databases/`). BLASTp and DIAMOND indexes are stored separately. A change to the protein FASTA content creates a new index.
+
+Use `--arg-db-cache /path/to/cache` to choose the cache directory, or `--rebuild-arg-db` to rebuild. Each run records the index path and reuse status in `04_arg_annotation/database.json`.
 
 ## Default thresholds
 

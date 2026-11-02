@@ -2,7 +2,7 @@
 # Portable defaults use detached testdata. Edit paths for your own genomes/database.
 MAG_DIR="$task_project_dir/testdata/mags"
 TAXONOMY_TSV="$task_project_dir/testdata/taxonomy.tsv"
-SARG_FASTA="$task_project_dir/SARG.faa" # Set the path to your real ARG protein database.
+SARG_FASTA="$task_project_dir/database/SARG3.2.1-S.fasta"
 PREPARED_INPUTS="$task_project_dir/testdata"
 ORF_GFF="$PREPARED_INPUTS/genes.gff"
 ORF_TSV="$PREPARED_INPUTS/orfs.tsv"

@@ -26,6 +26,7 @@ Coordinates are 1-based inclusive. A is forward-oriented; B strand is relative t
 | 02_fastani/ | ANI inputs and results |
 | 03_prodigal/ | ORF coordinates and sequences |
 | 04_arg_annotation/ | Raw, filtered and best hits; ARG overlap details |
+| 04_arg_annotation/database.json | ARG FASTA hash, cached index path and reuse status |
 | 05_summary/hgt_fragments.fna | Both DNA endpoints |
 | 05_summary/hgt_arg_orfs.fna | Full ARG ORF sequences with any fragment overlap |
 | pipeline.log / run_summary.json | Progress, parameters and counts |

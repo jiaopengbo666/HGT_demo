@@ -1,0 +1,9 @@
+{
+  "database": "SARG3.2.1-S",
+  "filename": "SARG3.2.1-S.fasta",
+  "sequence_count": 12746,
+  "bytes": 10629418,
+  "sha256": "87ad34a0620cfd7316a99e134bd532af9974b55b7ee048ab830078c0b152c3c7",
+  "annotation_map": "data/SARG_names.tsv",
+  "mapped_sequence_count": 12746
+}
